@@ -4,12 +4,10 @@ Created on Wed Jun 20 12:52:55 2018
 @author: Vaiva & Tim
 """
 
-from collections import defaultdict
-import itertools
+
 import numpy as np
 import random
 import itertools
-import math
 import networkx as nx
 import scipy.sparse as sparse
 
@@ -50,9 +48,14 @@ class Quality_matrix:
         self.similarity_matrix = similarity_matrix
         self.node_id_dict = node_id_dict
         self.strength = similarity_matrix.sum(axis=0)
-        self.strength = {
-            n: self.strength[0, node_id_dict[n]] for n in node_id_dict.keys()
-        }  # sum over rows?
+        try:
+            self.strength = {
+                n: self.strength[node_id_dict[n]] for n in node_id_dict.keys()
+            }  # sum over rows?
+        except IndexError:
+            self.strength = {
+                n: self.strength[0, node_id_dict[n]] for n in node_id_dict.keys()
+            }
         self.total_weight = similarity_matrix.sum()  # /2
         self.Lambda = Lambda
         self.with_replacement = with_replacement

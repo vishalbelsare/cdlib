@@ -1,7 +1,6 @@
 import warnings
 import networkx as nx
 import numpy as np
-import scipy
 
 warnings.filterwarnings("ignore")
 
@@ -23,7 +22,8 @@ def __regularized_laplacian_matrix(adj_matrix, tau):
     :param tau: the regularisation constant
     :return: the first K eigenvector
     """
-    import scipy.sparse
+    import scipy.sparse as sp
+    import scipy
 
     # Code inspired from nx.normalized_laplacian_matrix, with changes to allow regularisation
     n, m = adj_matrix.shape
@@ -35,10 +35,10 @@ def __regularized_laplacian_matrix(adj_matrix, tau):
 
     # diags will be zero at points where there is no edge and/or the node you are at
     #  ignore the error and make it zero later
-    with scipy.errstate(divide="ignore"):
-        diags_sqrt = 1.0 / scipy.sqrt(diags)
-    diags_sqrt[scipy.isinf(diags_sqrt)] = 0
-    D = scipy.sparse.spdiags(diags_sqrt, [0], m, n, format="csr")
+    # with scipy.errstate(divide="ignore"):
+    diags_sqrt = 1.0 / np.sqrt(diags)
+    diags_sqrt[np.isinf(diags_sqrt)] = 0
+    D = sp.spdiags(diags_sqrt, [0], m, n, format="csr")
 
     L = I - (D.dot(adj_matrix.dot(D)))
     return L
@@ -150,7 +150,7 @@ def rsc_evaluate_graph(
     # Before computing anything, largest connected component identified and used
     graph = graph.subgraph(max(nx.connected_components(graph), key=len)).copy()
 
-    adj_matrix = nx.to_scipy_sparse_matrix(graph, format="csr")
+    adj_matrix = nx.to_scipy_sparse_array(graph, format="csr")
 
     if method == "sklearn_spectral_embedding":
         (labels, num_iterations, smallest_cluster_size) = __sklearn_spectral_clustering(

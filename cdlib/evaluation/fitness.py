@@ -368,7 +368,9 @@ def average_internal_degree(
 ) -> object:
     """The average internal degree of the community set.
 
-    .. math:: f(S) = \\frac{2m_S}{n_S}
+     .. math:: f(S) = \\frac{2m_S}{n_S}
+
+
 
      where :math:`m_S` is the number of community internal edges and :math:`n_S` is the number of community nodes.
 
@@ -514,9 +516,9 @@ def expansion(graph: nx.Graph, community: object, summary: bool = True) -> objec
 def cut_ratio(graph: nx.Graph, community: object, summary: bool = True) -> object:
     """Fraction of existing edges (out of all possible edges) leaving the community.
 
-    ..math:: f(S) = \\frac{c_S}{n_S (n − n_S)}
+    .. math:: f(S) = \\frac{c_S}{n_S (n − n_S)}
 
-    where :math:`c_S` is the number of community nodes and, :math:`n_S` is the number of edges on the community boundary
+    where :math:`c_S` is the cut size (number of edges on the community boundary) and :math:`n_S` is the number of community nodes
 
     :param graph: a networkx/igraph object
     :param community: NodeClustering object

@@ -39,7 +39,7 @@ def plot_sim_matrix(
             c2ID = c2.get_description()
             forDF.append([cID, c2ID, scoring(c, c2).score])
     df = pd.DataFrame(columns=["com1", "com2", "score"], data=forDF)
-    df = df.pivot("com1", "com2", "score")
+    df = df.pivot(index="com1", columns="com2", values="score")
     return sns.clustermap(df)
 
 
@@ -73,7 +73,7 @@ def plot_com_stat(
         allVals += prop
         allNames += [c.get_description()] * len(prop)
 
-    ax = sns.violinplot(allNames, allVals, cut=0, saturation=0.5, palette="Set3")
+    ax = sns.violinplot(x=allNames, y=allVals, cut=0, saturation=0.5, palette="Set3")
     for tick in ax.get_xticklabels():
         tick.set_rotation(90)
 

@@ -2,7 +2,7 @@
 Synthetic Benchmarks
 ********************
 
-Evaluating Community Detection algorithms on ground truth communities can be tricky when the annotation is based on external semantic information, not on topological ones.
+Evaluating Community Detection algorithms on ground truth communities can be tricky when the annotation is based on external semantic information, not topological ones.
 
 For this reason, ``cdlib`` integrates synthetic network generators with planted community structures.
 
@@ -22,7 +22,7 @@ All generators return a tuple: (``networkx.Graph``, ``cdlib.NodeClustering``)
 
 
 .. autosummary::
-    :toctree: bench/
+    :toctree: generated/
 
     GRP
     LFR
@@ -33,7 +33,7 @@ All generators return a tuple: (``networkx.Graph``, ``cdlib.NodeClustering``)
 Benchmarks for node-attributed static networks.
 
 .. autosummary::
-    :toctree: bench/
+    :toctree: generated/
 
     XMark
 
@@ -42,11 +42,11 @@ Benchmarks for node-attributed static networks.
 Dynamic Networks with Community Ground Truth
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Time evolving network topologies with planted community life-cycles.
+Time-evolving network topologies with planted community life cycles.
 All generators return a tuple: (``dynetx.DynGraph``, ``cdlib.TemporalClustering``)
 
 .. autosummary::
-    :toctree: bench/
+    :toctree: generated/
 
     RDyn
 

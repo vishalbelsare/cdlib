@@ -2,7 +2,7 @@
 Edge Clustering
 ===============
 
-Algorithms falling in this category generates communities composed by edges.
+Algorithms falling in this category generate communities composed of edges.
 They return as result a ``EdgeClustering`` object instance.
 
 .. note::
@@ -13,9 +13,12 @@ They return as result a ``EdgeClustering`` object instance.
 
 
 .. autosummary::
-    :toctree: algs/
+    :toctree: ../generated/
 
     hierarchical_link_community
+    hierarchical_link_community_w
+    hierarchical_link_community_full
+
 
 
 

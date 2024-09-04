@@ -5,9 +5,11 @@ from copy import deepcopy
 from cdlib.algorithms.internal import DER
 
 from community import community_louvain
+
 from collections import defaultdict
 from cdlib import NodeClustering, FuzzyNodeClustering
-from cdlib.algorithms.internal.Bayan import bayan_alg
+
+# from cdlib.algorithms.internal.Bayan import bayan_alg
 from cdlib.algorithms.internal.belief_prop import detect_belief_communities
 from cdlib.algorithms.internal.em import EM_nx
 from cdlib.algorithms.internal.scan import SCAN_nx
@@ -33,12 +35,12 @@ from cdlib.algorithms.internal.principled import principled
 from cdlib.algorithms.internal.MCODE import m_code
 from cdlib.algorithms.internal.RSC import rsc_evaluate_graph
 from cdlib.prompt_utils import report_missing_packages, prompt_import_failure
+import cdlib.algorithms.internal.markov_clustering as mc
 
 import warnings
 
-import markov_clustering as mc
-from chinese_whispers import chinese_whispers as cw
-from chinese_whispers import aggregate_clusters
+# from chinese_whispers import chinese_whispers as cw
+# from chinese_whispers import aggregate_clusters
 from thresholdclustering.thresholdclustering import best_partition as th_best_partition
 import networkx as nx
 
@@ -83,9 +85,16 @@ except ModuleNotFoundError:
     gt = None
 
 try:
-    import karateclub
+    import bayanpy as by
 except ModuleNotFoundError:
-    missing_packages.add("karateclub")
+    missing_packages.add("bayanpy")
+    by = None
+
+
+# try:
+#    import karateclub
+# except ModuleNotFoundError:
+#    missing_packages.add("karateclub")
 
 
 report_missing_packages(missing_packages)
@@ -126,8 +135,8 @@ __all__ = [
     "sbm_dl",
     "sbm_dl_nested",
     "markov_clustering",
-    "edmot",
-    "chinesewhispers",
+    # "edmot",
+    # "chinesewhispers",
     "siblinarity_antichain",
     "ga",
     "belief",
@@ -138,8 +147,8 @@ __all__ = [
     "mod_r",
     "head_tail",
     "kcut",
-    "gemsec",
-    "scd",
+    # "gemsec",
+    # "scd",
     "pycombo",
     "paris",
     "principled_clustering",
@@ -147,7 +156,7 @@ __all__ = [
     "spectral",
     "mcode",
     "r_spectral_clustering",
-    "bayan"
+    "bayan",
 ]
 
 
@@ -484,6 +493,7 @@ def agdl(g_original: object, number_communities: int, kc: int) -> NodeClustering
 
 def louvain(
     g_original: object,
+    partition: NodeClustering = None,
     weight: str = "weight",
     resolution: float = 1.0,
     randomize: int = None,
@@ -503,15 +513,15 @@ def louvain(
     ========== ======== ========
     Undirected Directed Weighted
     ========== ======== ========
-    Yes        No       No
+    Yes        No       Yes
     ========== ======== ========
 
     :param g_original: a networkx/igraph object
-    :param weight: str, optional the key in graph to use as weight. Default to 'weight'
+    :param partition: NodeClustering object, optional the algorithm will start using this partition of the nodes
+    :param weight: str, optional the key in graph to use as weight. Default to "weight"
     :param resolution: double, optional  Will change the size of the communities, default to 1.
-    :param randomize: int, RandomState instance or None, optional (default=None). If int, random_state is the seed used by the random number generator; If RandomState instance, random_state is the random number generator; If None, the random number generator is the RandomState instance used by `np.random`.
+    :param randomize: int, RandomState instance or None, optional (default=None).
     :return: NodeClustering object
-
 
     :Example:
 
@@ -525,12 +535,24 @@ def louvain(
     Blondel, Vincent D., et al. `Fast unfolding of communities in large networks. <https://iopscience.iop.org/article/10.1088/1742-5468/2008/10/P10008/meta/>`_ Journal of statistical mechanics: theory and experiment 2008.10 (2008): P10008.
 
     .. note:: Reference implementation: https://github.com/taynaud/python-louvain
+
     """
 
     g = convert_graph_formats(g_original, nx.Graph)
 
+    if partition is not None:
+        communities = {}
+        for idc, com in enumerate(partition.communities):
+            for n in com:
+                communities[n] = idc
+        partition = communities
+
     coms = community_louvain.best_partition(
-        g, weight=weight, resolution=resolution, randomize=randomize
+        g,
+        partition=partition,
+        weight=weight,
+        resolution=resolution,
+        randomize=randomize,
     )
 
     # Reshaping the results
@@ -567,7 +589,7 @@ def leiden(
     ========== ======== ========
     Undirected Directed Weighted
     ========== ======== ========
-    Yes        No       No
+    Yes        No       Yes
     ========== ======== ========
 
     :param g_original: a networkx/igraph object
@@ -668,10 +690,15 @@ def rb_pots(
 
     """
 
-    if ig is None:
-        raise ModuleNotFoundError(
-            "Optional dependency not satisfied: install igraph to use the selected feature."
-        )
+    global leidenalg
+    if ig is None or leidenalg is None:
+        try:
+            import leidenalg
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "Optional dependency not satisfied: install igraph and leidenalg to use the "
+                "selected feature."
+            )
 
     g = convert_graph_formats(g_original, ig.Graph)
 
@@ -742,10 +769,15 @@ def rber_pots(
 
     """
 
-    if ig is None:
-        raise ModuleNotFoundError(
-            "Optional dependency not satisfied: install igraph to use the selected feature."
-        )
+    global leidenalg
+    if ig is None or leidenalg is None:
+        try:
+            import leidenalg
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "Optional dependency not satisfied: install igraph and leidenalg to use the "
+                "selected feature."
+            )
 
     g = convert_graph_formats(g_original, ig.Graph)
 
@@ -828,10 +860,15 @@ def cpm(
 
     """
 
-    if ig is None:
-        raise ModuleNotFoundError(
-            "Optional dependency not satisfied: install igraph to use the selected feature."
-        )
+    global leidenalg
+    if ig is None or leidenalg is None:
+        try:
+            import leidenalg
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "Optional dependency not satisfied: install igraph and leidenalg to use the "
+                "selected feature."
+            )
 
     g = convert_graph_formats(g_original, ig.Graph)
 
@@ -900,10 +937,15 @@ def significance_communities(
 
     """
 
-    if ig is None:
-        raise ModuleNotFoundError(
-            "Optional dependency not satisfied: install igraph to use the selected feature."
-        )
+    global leidenalg
+    if ig is None or leidenalg is None:
+        try:
+            import leidenalg
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "Optional dependency not satisfied: install igraph and leidenalg to use the "
+                "selected feature."
+            )
 
     g = convert_graph_formats(g_original, ig.Graph)
 
@@ -974,10 +1016,15 @@ def surprise_communities(
 
     """
 
-    if ig is None:
-        raise ModuleNotFoundError(
-            "Optional dependency not satisfied: install igraph to use the selected feature."
-        )
+    global leidenalg
+    if ig is None or leidenalg is None:
+        try:
+            import leidenalg
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError(
+                "Optional dependency not satisfied: install igraph and leidenalg to use the "
+                "selected feature."
+            )
 
     g = convert_graph_formats(g_original, ig.Graph)
 
@@ -1044,6 +1091,7 @@ def infomap(g_original: object, flags: str = "") -> NodeClustering:
     Infomap is based on ideas of information theory.
     The algorithm uses the probability flow of random walks on a network as a proxy for information flows in the real system and it decomposes the network into modules by compressing a description of the probability flow.
 
+    NB: in case the Infomap package is not installed/installable (e.g., on M1 silicon Macs), the implementation used is the one from the igraph library.
 
     **Supported Graph Types**
 
@@ -1072,14 +1120,26 @@ def infomap(g_original: object, flags: str = "") -> NodeClustering:
 
     .. note:: Infomap Python API documentation: https://mapequation.github.io/infomap/python/
     """
+
     global imp, pipes
     if imp is None:
         try:
             import infomap as imp
         except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "Optional dependency not satisfied: install infomap to use the selected feature."
+            g = convert_graph_formats(g_original, ig.Graph)
+            coms = g.community_infomap()
+
+            communities = []
+
+            for c in coms:
+                communities.append([g.vs[x]["name"] for x in c])
+
+            return NodeClustering(
+                communities, g_original, "Infomap", method_parameters={"igraph": True}
             )
+            # raise ModuleNotFoundError(
+            #    "Optional dependency not satisfied: install infomap to use the selected feature."
+            # )
     if pipes is None:
         try:
             from wurlitzer import pipes
@@ -1440,7 +1500,9 @@ def principled_clustering(
     )
 
 
-def sbm_dl(g_original: object,) -> NodeClustering:
+def sbm_dl(
+    g_original: object,
+) -> NodeClustering:
     """Efficient Monte Carlo and greedy heuristic for the inference of stochastic block models.
 
     Fit a non-overlapping stochastic block model (SBM) by minimizing its description length using an agglomerative heuristic.
@@ -1493,7 +1555,9 @@ def sbm_dl(g_original: object,) -> NodeClustering:
     return NodeClustering(coms, g_original, "SBM", method_parameters={})
 
 
-def sbm_dl_nested(g_original: object,) -> NodeClustering:
+def sbm_dl_nested(
+    g_original: object,
+) -> NodeClustering:
     """Efficient Monte Carlo and greedy heuristic for the inference of stochastic block models. (nested)
 
     Fit a nested non-overlapping stochastic block model (SBM) by minimizing its description length using an agglomerative heuristic.
@@ -1609,9 +1673,9 @@ def markov_clustering(
     g, maps = nx_node_integer_mapping(g)
 
     if maps is not None:
-        matrix = nx.to_scipy_sparse_matrix(g, nodelist=range(len(maps)))
+        matrix = nx.to_scipy_sparse_array(g, nodelist=range(len(maps)))
     else:
-        matrix = nx.to_scipy_sparse_matrix(g)
+        matrix = nx.to_scipy_sparse_array(g)
 
     result = mc.run_mcl(
         matrix,
@@ -1650,132 +1714,132 @@ def markov_clustering(
     )
 
 
-def chinesewhispers(
-    g_original: object, weighting: str = "top", iterations: int = 20, seed: int = None
-) -> NodeClustering:
-    """
-
-    Fuzzy graph clustering that (i) creates an intermediate representation of the input graph, which reflects the “ambiguity” of its nodes,
-    and (ii) uses hard clustering to discover crisp clusters in such “disambiguated” intermediate graph.
-
-
-    **Supported Graph Types**
-
-    ========== ======== ========
-    Undirected Directed Weighted
-    ========== ======== ========
-    Yes        No       Yes
-    ========== ======== ========
-
-    :param g_original:
-    :param weighting: edge weighing schemas. Available modalities: ['top', 'lin', 'log']
-    :param iterations: number of iterations
-    :param seed: random seed
-    :return: NodeClustering object
-
-    :Example:
-
-    >>> from cdlib import algorithms
-    >>> import networkx as nx
-    >>> G = nx.karate_club_graph()
-    >>> coms = algorithms.chinesewhispers(G)
-
-    :References:
-
-    Biemann, Chris. 2006. Chinese Whispers: An Efficient Graph Clustering Algorithm and Its Application to Natural Language Processing Problems. In Proceedings of the First Workshop on Graph Based Methods for Natural Language Processing, TextGraphs-1, pages 73–80, Association for Computational Linguistics, New York, NY, USA.
-
-    .. note:: Reference implementation: https://github.com/nlpub/chinese-whispers-python
-    """
-
-    g = convert_graph_formats(g_original, nx.Graph)
-    g, maps = nx_node_integer_mapping(g)
-
-    cw(g, weighting=weighting, iterations=iterations, seed=seed)
-
-    coms = []
-    if maps is not None:
-        for _, cluster in sorted(
-            aggregate_clusters(g).items(), key=lambda e: len(e[1]), reverse=True
-        ):
-            coms.append([maps[n] for n in cluster])
-
-        nx.relabel_nodes(g, maps, False)
-    else:
-        for _, cluster in sorted(
-            aggregate_clusters(g).items(), key=lambda e: len(e[1]), reverse=True
-        ):
-            coms.append(list(cluster))
-
-    return NodeClustering(
-        coms,
-        g_original,
-        "Chinese Whispers",
-        method_parameters={"weighting": weighting, "iterations": iterations},
-    )
-
-
-def edmot(
-    g_original: object, component_count: int = 2, cutoff: int = 10
-) -> NodeClustering:
-    """
-    The algorithm first creates the graph of higher order motifs. This graph is clustered by the Louvain method.
+# def chinesewhispers(
+#     g_original: object, weighting: str = "top", iterations: int = 20, seed: int = None
+# ) -> NodeClustering:
+#     """
+#
+#     Fuzzy graph clustering that (i) creates an intermediate representation of the input graph, which reflects the “ambiguity” of its nodes,
+#     and (ii) uses hard clustering to discover crisp clusters in such “disambiguated” intermediate graph.
+#
+#
+#     **Supported Graph Types**
+#
+#     ========== ======== ========
+#     Undirected Directed Weighted
+#     ========== ======== ========
+#     Yes        No       Yes
+#     ========== ======== ========
+#
+#     :param g_original:
+#     :param weighting: edge weighing schemas. Available modalities: ['top', 'lin', 'log']
+#     :param iterations: number of iterations
+#     :param seed: random seed
+#     :return: NodeClustering object
+#
+#     :Example:
+#
+#     >>> from cdlib import algorithms
+#     >>> import networkx as nx
+#     >>> G = nx.karate_club_graph()
+#     >>> coms = algorithms.chinesewhispers(G)
+#
+#     :References:
+#
+#     Biemann, Chris. 2006. Chinese Whispers: An Efficient Graph Clustering Algorithm and Its Application to Natural Language Processing Problems. In Proceedings of the First Workshop on Graph Based Methods for Natural Language Processing, TextGraphs-1, pages 73–80, Association for Computational Linguistics, New York, NY, USA.
+#
+#     .. note:: Reference implementation: https://github.com/nlpub/chinese-whispers-python
+#     """
+#
+#     g = convert_graph_formats(g_original, nx.Graph)
+#     g, maps = nx_node_integer_mapping(g)
+#
+#     cw(g, weighting=weighting, iterations=iterations, seed=seed)
+#
+#     coms = []
+#     if maps is not None:
+#         for _, cluster in sorted(
+#             aggregate_clusters(g).items(), key=lambda e: len(e[1]), reverse=True
+#         ):
+#             coms.append([maps[n] for n in cluster])
+#
+#         nx.relabel_nodes(g, maps, False)
+#     else:
+#         for _, cluster in sorted(
+#             aggregate_clusters(g).items(), key=lambda e: len(e[1]), reverse=True
+#         ):
+#             coms.append(list(cluster))
+#
+#     return NodeClustering(
+#         coms,
+#         g_original,
+#         "Chinese Whispers",
+#         method_parameters={"weighting": weighting, "iterations": iterations},
+#     )
 
 
-    **Supported Graph Types**
-
-    ========== ======== ========
-    Undirected Directed Weighted
-    ========== ======== ========
-    Yes        No       No
-    ========== ======== ========
-
-    :param g_original: a networkx/igraph object
-    :param component_count: Number of extracted motif hypergraph components. Default is 2.
-    :param cutoff: Motif edge cut-off value. Default is 10.
-    :return: NodeClustering object
-
-    :Example:
-
-    >>> from cdlib import algorithms
-    >>> import networkx as nx
-    >>> G = nx.karate_club_graph()
-    >>> coms = algorithms.edmot(G)
-
-    :References:
-
-    Li, Pei-Zhen, et al. "EdMot: An Edge Enhancement Approach for Motif-aware Community Detection." Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining. 2019.
-
-    .. note:: Reference implementation: https://karateclub.readthedocs.io/
-    """
-    global karateclub
-
-    if "karateclub" not in sys.modules:
-        try:
-            import karateclub
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "Optional dependency not satisfied: install karateclub to use the selected feature."
-            )
-
-    g = convert_graph_formats(g_original, nx.Graph)
-    model = karateclub.EdMot(component_count=2, cutoff=10)
-
-    model.fit(g)
-    members = model.get_memberships()
-
-    # Reshaping the results
-    coms_to_node = defaultdict(list)
-    for n, c in members.items():
-        coms_to_node[c].append(n)
-
-    coms = [list(c) for c in coms_to_node.values()]
-
-    return NodeClustering(
-        coms,
-        g_original,
-        "EdMot",
-        method_parameters={"component_count": component_count, "cutoff": cutoff},
-    )
+# def edmot(
+#     g_original: object, component_count: int = 2, cutoff: int = 10
+# ) -> NodeClustering:
+#     """
+#     The algorithm first creates the graph of higher order motifs. This graph is clustered by the Louvain method.
+#
+#
+#     **Supported Graph Types**
+#
+#     ========== ======== ========
+#     Undirected Directed Weighted
+#     ========== ======== ========
+#     Yes        No       No
+#     ========== ======== ========
+#
+#     :param g_original: a networkx/igraph object
+#     :param component_count: Number of extracted motif hypergraph components. Default is 2.
+#     :param cutoff: Motif edge cut-off value. Default is 10.
+#     :return: NodeClustering object
+#
+#     :Example:
+#
+#     >>> from cdlib import algorithms
+#     >>> import networkx as nx
+#     >>> G = nx.karate_club_graph()
+#     >>> coms = algorithms.edmot(G)
+#
+#     :References:
+#
+#     Li, Pei-Zhen, et al. "EdMot: An Edge Enhancement Approach for Motif-aware Community Detection." Proceedings of the 25th ACM SIGKDD International Conference on Knowledge Discovery & Data Mining. 2019.
+#
+#     .. note:: Reference implementation: https://karateclub.readthedocs.io/
+#     """
+#     #global karateclub
+#
+#     if "karateclub" not in sys.modules:
+#         try:
+#             import karateclub
+#         except ModuleNotFoundError:
+#             raise ModuleNotFoundError(
+#                 "Optional dependency not satisfied: install karateclub to use the selected feature."
+#             )
+#
+#     g = convert_graph_formats(g_original, nx.Graph)
+#     model = karateclub.EdMot(component_count=2, cutoff=10)
+#
+#     model.fit(g)
+#     members = model.get_memberships()
+#
+#     # Reshaping the results
+#     coms_to_node = defaultdict(list)
+#     for n, c in members.items():
+#         coms_to_node[c].append(n)
+#
+#     coms = [list(c) for c in coms_to_node.values()]
+#
+#     return NodeClustering(
+#         coms,
+#         g_original,
+#         "EdMot",
+#         method_parameters={"component_count": component_count, "cutoff": cutoff},
+#     )
 
 
 def siblinarity_antichain(
@@ -2349,173 +2413,173 @@ def kcut(g_original: object, kmax: int = 4) -> NodeClustering:
     return NodeClustering(coms, g_original, "Kcut", method_parameters={"kmax": kmax})
 
 
-def gemsec(
-    g_original: object,
-    walk_number: int = 5,
-    walk_length: int = 80,
-    dimensions: int = 32,
-    negative_samples: int = 5,
-    window_size: int = 5,
-    learning_rate: float = 0.1,
-    clusters: int = 10,
-    gamma: float = 0.1,
-    seed: int = 42,
-) -> NodeClustering:
-    """
-    The procedure uses random walks to approximate the pointwise mutual information matrix obtained by pooling normalized adjacency matrix powers.
-    This matrix is decomposed by an approximate factorization technique which is combined with a k-means like clustering cost.
+# def gemsec(
+#     g_original: object,
+#     walk_number: int = 5,
+#     walk_length: int = 80,
+#     dimensions: int = 32,
+#     negative_samples: int = 5,
+#     window_size: int = 5,
+#     learning_rate: float = 0.1,
+#     clusters: int = 10,
+#     gamma: float = 0.1,
+#     seed: int = 42,
+# ) -> NodeClustering:
+#     """
+#     The procedure uses random walks to approximate the pointwise mutual information matrix obtained by pooling normalized adjacency matrix powers.
+#     This matrix is decomposed by an approximate factorization technique which is combined with a k-means like clustering cost.
+#
+#
+#     **Supported Graph Types**
+#
+#     ========== ======== ========
+#     Undirected Directed Weighted
+#     ========== ======== ========
+#     Yes        Yes      No
+#     ========== ======== ========
+#
+#     :param g_original: a networkx/igraph object
+#     :param walk_number: Number of random walks. Default is 5.
+#     :param walk_length: Length of random walks. Default is 80.
+#     :param dimensions: Dimensionality of embedding. Default is 32.
+#     :param negative_samples: Number of negative samples. Default is 5.
+#     :param window_size: Matrix power order. Default is 5.
+#     :param learning_rate: Gradient descent learning rate. Default is 0.1.
+#     :param clusters: Number of cluster centers. Default is 10.
+#     :param gamma: Clustering cost weight coefficient. Default is 0.1.
+#     :param seed: Random seed value. Default is 42.
+#     :return: NodeClustering object
+#
+#
+#     :Example:
+#
+#     >>> from cdlib import algorithms
+#     >>> import networkx as nx
+#     >>> G = nx.karate_club_graph()
+#     >>> coms = algorithms.gemsec(G)
+#
+#     :References:
+#
+#     Rozemberczki, B., Davies, R., Sarkar, R., & Sutton, C. (2019, August). Gemsec: Graph embedding with self clustering. In Proceedings of the 2019 IEEE/ACM international conference on advances in social networks analysis and mining (pp. 65-72).
+#
+#     .. note:: Reference implementation: https://karateclub.readthedocs.io/
+#     """
+#     global karateclub
+#     if "karateclub" not in sys.modules:
+#         try:
+#             import karateclub
+#         except ModuleNotFoundError:
+#             raise ModuleNotFoundError(
+#                 "Optional dependency not satisfied: install karateclub to use the selected feature."
+#             )
+#
+#     g = convert_graph_formats(g_original, nx.Graph)
+#     model = karateclub.GEMSEC(
+#         walk_number=walk_number,
+#         walk_length=walk_length,
+#         dimensions=dimensions,
+#         negative_samples=negative_samples,
+#         window_size=window_size,
+#         learning_rate=learning_rate,
+#         clusters=clusters,
+#         gamma=gamma,
+#         seed=seed,
+#     )
+#     model.fit(g)
+#     members = model.get_memberships()
+#
+#     # Reshaping the results
+#     coms_to_node = defaultdict(list)
+#     for n, c in members.items():
+#         coms_to_node[c].append(n)
+#
+#     coms = [list(c) for c in coms_to_node.values()]
+#
+#     return NodeClustering(
+#         coms,
+#         g_original,
+#         "GEMSEC",
+#         method_parameters={
+#             "walk_number": walk_number,
+#             "walk_length": walk_length,
+#             "dimensions": dimensions,
+#             "negative_samples": negative_samples,
+#             "window_size": window_size,
+#             "learning_rate": learning_rate,
+#             "clusters": clusters,
+#             "gamma": gamma,
+#             "seed": seed,
+#         },
+#         overlap=False,
+#     )
 
 
-    **Supported Graph Types**
-
-    ========== ======== ========
-    Undirected Directed Weighted
-    ========== ======== ========
-    Yes        Yes      No
-    ========== ======== ========
-
-    :param g_original: a networkx/igraph object
-    :param walk_number: Number of random walks. Default is 5.
-    :param walk_length: Length of random walks. Default is 80.
-    :param dimensions: Dimensionality of embedding. Default is 32.
-    :param negative_samples: Number of negative samples. Default is 5.
-    :param window_size: Matrix power order. Default is 5.
-    :param learning_rate: Gradient descent learning rate. Default is 0.1.
-    :param clusters: Number of cluster centers. Default is 10.
-    :param gamma: Clustering cost weight coefficient. Default is 0.1.
-    :param seed: Random seed value. Default is 42.
-    :return: NodeClustering object
-
-
-    :Example:
-
-    >>> from cdlib import algorithms
-    >>> import networkx as nx
-    >>> G = nx.karate_club_graph()
-    >>> coms = algorithms.gemsec(G)
-
-    :References:
-
-    Rozemberczki, B., Davies, R., Sarkar, R., & Sutton, C. (2019, August). Gemsec: Graph embedding with self clustering. In Proceedings of the 2019 IEEE/ACM international conference on advances in social networks analysis and mining (pp. 65-72).
-
-    .. note:: Reference implementation: https://karateclub.readthedocs.io/
-    """
-    global karateclub
-    if "karateclub" not in sys.modules:
-        try:
-            import karateclub
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "Optional dependency not satisfied: install karateclub to use the selected feature."
-            )
-
-    g = convert_graph_formats(g_original, nx.Graph)
-    model = karateclub.GEMSEC(
-        walk_number=walk_number,
-        walk_length=walk_length,
-        dimensions=dimensions,
-        negative_samples=negative_samples,
-        window_size=window_size,
-        learning_rate=learning_rate,
-        clusters=clusters,
-        gamma=gamma,
-        seed=seed,
-    )
-    model.fit(g)
-    members = model.get_memberships()
-
-    # Reshaping the results
-    coms_to_node = defaultdict(list)
-    for n, c in members.items():
-        coms_to_node[c].append(n)
-
-    coms = [list(c) for c in coms_to_node.values()]
-
-    return NodeClustering(
-        coms,
-        g_original,
-        "GEMSEC",
-        method_parameters={
-            "walk_number": walk_number,
-            "walk_length": walk_length,
-            "dimensions": dimensions,
-            "negative_samples": negative_samples,
-            "window_size": window_size,
-            "learning_rate": learning_rate,
-            "clusters": clusters,
-            "gamma": gamma,
-            "seed": seed,
-        },
-        overlap=False,
-    )
-
-
-def scd(
-    g_original: object, iterations: int = 25, eps: float = 1e-06, seed: int = 42
-) -> NodeClustering:
-    """
-    The procedure greedily optimizes the approximate weighted community clustering metric.
-    First, clusters are built around highly clustered nodes. Second, we refine the initial partition by using the approximate WCC.
-    These refinements happen for the whole vertex set.
-
-
-    **Supported Graph Types**
-
-    ========== ======== ========
-    Undirected Directed Weighted
-    ========== ======== ========
-    Yes        No       No
-    ========== ======== ========
-
-    :param g_original: a networkx/igraph object
-    :param iterations: Refinemeent iterations. Default is 25.
-    :param eps: Epsilon score for zero division correction. Default is 10**-6.
-    :param seed: Random seed value. Default is 42.
-    :return: NodeClustering object
-
-
-    :Example:
-
-    >>> from cdlib import algorithms
-    >>> import networkx as nx
-    >>> G = nx.karate_club_graph()
-    >>> coms = algorithms.scd(G)
-
-    :References:
-
-    Prat-Pérez, A., Dominguez-Sal, D., & Larriba-Pey, J. L. (2014, April). High quality, scalable and parallel community detection for large real graphs. In Proceedings of the 23rd international conference on World wide web (pp. 225-236).
-
-    .. note:: Reference implementation: https://karateclub.readthedocs.io/
-    """
-    global karateclub
-
-    if "karateclub" not in sys.modules:
-        try:
-            import karateclub
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError(
-                "Optional dependency not satisfied: install karateclub to use the selected feature."
-            )
-
-    g = convert_graph_formats(g_original, nx.Graph)
-    model = karateclub.SCD(iterations=iterations, eps=eps, seed=seed)
-    model.fit(g)
-    members = model.get_memberships()
-
-    # Reshaping the results
-    coms_to_node = defaultdict(list)
-    for n, c in members.items():
-        coms_to_node[c].append(n)
-
-    coms = [list(c) for c in coms_to_node.values()]
-
-    return NodeClustering(
-        coms,
-        g_original,
-        "SCD",
-        method_parameters={"iterations": iterations, "eps": eps, "seed": seed},
-        overlap=False,
-    )
+# def scd(
+#     g_original: object, iterations: int = 25, eps: float = 1e-06, seed: int = 42
+# ) -> NodeClustering:
+#     """
+#     The procedure greedily optimizes the approximate weighted community clustering metric.
+#     First, clusters are built around highly clustered nodes. Second, we refine the initial partition by using the approximate WCC.
+#     These refinements happen for the whole vertex set.
+#
+#
+#     **Supported Graph Types**
+#
+#     ========== ======== ========
+#     Undirected Directed Weighted
+#     ========== ======== ========
+#     Yes        No       No
+#     ========== ======== ========
+#
+#     :param g_original: a networkx/igraph object
+#     :param iterations: Refinemeent iterations. Default is 25.
+#     :param eps: Epsilon score for zero division correction. Default is 10**-6.
+#     :param seed: Random seed value. Default is 42.
+#     :return: NodeClustering object
+#
+#
+#     :Example:
+#
+#     >>> from cdlib import algorithms
+#     >>> import networkx as nx
+#     >>> G = nx.karate_club_graph()
+#     >>> coms = algorithms.scd(G)
+#
+#     :References:
+#
+#     Prat-Pérez, A., Dominguez-Sal, D., & Larriba-Pey, J. L. (2014, April). High quality, scalable and parallel community detection for large real graphs. In Proceedings of the 23rd international conference on World wide web (pp. 225-236).
+#
+#     .. note:: Reference implementation: https://karateclub.readthedocs.io/
+#     """
+#     global karateclub
+#
+#     if "karateclub" not in sys.modules:
+#         try:
+#             import karateclub
+#         except ModuleNotFoundError:
+#             raise ModuleNotFoundError(
+#                 "Optional dependency not satisfied: install karateclub to use the selected feature."
+#             )
+#
+#     g = convert_graph_formats(g_original, nx.Graph)
+#     model = karateclub.SCD(iterations=iterations, eps=eps, seed=seed)
+#     model.fit(g)
+#     members = model.get_memberships()
+#
+#     # Reshaping the results
+#     coms_to_node = defaultdict(list)
+#     for n, c in members.items():
+#         coms_to_node[c].append(n)
+#
+#     coms = [list(c) for c in coms_to_node.values()]
+#
+#     return NodeClustering(
+#         coms,
+#         g_original,
+#         "SCD",
+#         method_parameters={"iterations": iterations, "eps": eps, "seed": seed},
+#         overlap=False,
+#     )
 
 
 def pycombo(
@@ -2625,9 +2689,21 @@ def paris(g_original: object) -> NodeClustering:
 
     .. note:: Reference implementation: https://github.com/tbonald/paris
     """
+
     g = convert_graph_formats(g_original, nx.Graph)
-    D = paris_alg(g)
-    clustering = paris_best_clustering(D)
+
+    dmap = {n: i for i, n in enumerate(g.nodes)}
+    reverse_map = {i: n for n, i in dmap.items()}
+    nx.relabel_nodes(g_original, dmap, False)
+
+    D = paris_alg(g_original)
+    coms = paris_best_clustering(D)
+
+    clustering = []
+
+    for com in coms:
+        com = [reverse_map[c] for c in com]
+        clustering.append(com)
 
     return NodeClustering(
         clustering, g_original, "Paris", method_parameters={}, overlap=False
@@ -2701,7 +2777,7 @@ def ricci_community(
 
 def spectral(
     g_original: object,
-    kmax: int,
+    kmax: int = 2,
     projection_on_smaller_class: bool = True,
     scaler: Callable = None,
 ) -> NodeClustering:
@@ -2717,11 +2793,11 @@ def spectral(
     ========== ======== ======== =========
     Undirected Directed Weighted Bipartite
     ========== ======== ======== =========
-    Yes        No       No       Yes
+    Yes        No       No       No
     ========== ======== ======== =========
 
     :param g_original: a networkx/igraph object
-    :param kmax: maximum number of desired communities
+    :param kmax: maximum number of desired communities (mandatory). Default 2.
     :param projection_on_smaller_class: a boolean value that if True then it project a bipartite network in the smallest class of node. (default is True)
     :param scaler: the function to scale the fielder’s vector to apply KMeans
     :return: NodeClustering object
@@ -2732,7 +2808,7 @@ def spectral(
     >>> from cdlib import algorithms
     >>> import networkx as nx
     >>> G = nx.karate_club_graph()
-    >>> coms = algorithms.spectral(G)
+    >>> coms = algorithms.spectral(G, kmax=2)
 
     :References:
 
@@ -2889,7 +2965,12 @@ def r_spectral_clustering(
     )
 
 
-def bayan(g_original: object, threshold: float = 0.001, time_allowed: int = 60, resolution: float = 1) -> NodeClustering:
+def bayan(
+    g_original: object,
+    threshold: float = 0.001,
+    time_allowed: int = 60,
+    resolution: float = 1,
+) -> NodeClustering:
     """
     The Bayan algorithm is community detection method that is capable of providing a globally optimal solution to the modularity maximization problem.
     Bayan can also be implemented such that it provides an approximation of the maximum modularity with a guarantee of proximity.
@@ -2903,7 +2984,7 @@ def bayan(g_original: object, threshold: float = 0.001, time_allowed: int = 60, 
     ========== ======== ========
     Undirected Directed Weighted
     ========== ======== ========
-    Yes        No       No
+    Yes        No       Yes
     ========== ======== ========
 
     :param g_original: a networkx/igraph object
@@ -2924,12 +3005,27 @@ def bayan(g_original: object, threshold: float = 0.001, time_allowed: int = 60, 
     Aref, Samin, Hriday Chheda, and Mahdi Mostajabdaveh. "The Bayan Algorithm: Detecting Communities in Networks Through Exact and Approximate Optimization of Modularity." arXiv preprint arXiv:2209.04562 (2022).
     """
 
+    if by is None:
+        raise Exception(
+            "===================================================== \n"
+            "The bayan algorithm seems not to be installed (or incorrectly installed). \n"
+            "Please resolve with: pip install bayanpy"
+        )
+
     g = convert_graph_formats(g_original, nx.Graph)
-    _, _, communities = bayan_alg(
+
+    _, _, community, _, _ = by.bayan(
         g, threshold=threshold, time_allowed=time_allowed, resolution=resolution
     )
 
     return NodeClustering(
-        communities, g_original, "Bayan", method_parameters={"threshold": threshold, "time_allowed": time_allowed,
-                                                             "resolution": resolution}, overlap=False
+        community,
+        g_original,
+        "Bayan",
+        method_parameters={
+            "threshold": threshold,
+            "time_allowed": time_allowed,
+            "resolution": resolution,
+        },
+        overlap=False,
     )

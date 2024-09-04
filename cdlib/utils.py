@@ -79,7 +79,7 @@ def __from_graph_tool_to_nx(
     return tp
 
 
-def __from_nx_to_igraph(g: object, directed: bool = None) -> ig.Graph:
+def __from_nx_to_igraph(g: object, directed: bool = None) -> object:
     """
     :param g:
     :param directed:
@@ -98,12 +98,16 @@ def __from_nx_to_igraph(g: object, directed: bool = None) -> ig.Graph:
     gi = ig.Graph(directed=directed)
 
     a_r = {}
+    skip_bipartite = False
     if bipartite.is_bipartite(g):
-        A, B = bipartite.sets(g)
-        for a in A:
-            a_r[a] = 0
-        for b in B:
-            a_r[b] = 1
+        try:
+            A, B = bipartite.sets(g)
+            for a in A:
+                a_r[a] = 0
+            for b in B:
+                a_r[b] = 1
+        except nx.exception.AmbiguousSolution:
+            skip_bipartite = True
 
     ## Two problems to handle:
     # 1)in igraph, names have to be str.
@@ -127,7 +131,7 @@ def __from_nx_to_igraph(g: object, directed: bool = None) -> ig.Graph:
             gi.add_vertices(["\\" + str(n) for n in g.nodes()])
             gi.add_edges([("\\" + str(u), "\\" + str(v)) for (u, v) in g.edges()])
 
-    if bipartite.is_bipartite(g):
+    if bipartite.is_bipartite(g) and not skip_bipartite:
         gi.vs["type"] = [
             a_r[name] if type(name) == int else a_r[int(name.replace("\\", ""))]
             for name in gi.vs["name"]
@@ -140,7 +144,7 @@ def __from_nx_to_igraph(g: object, directed: bool = None) -> ig.Graph:
     return gi
 
 
-def __from_igraph_to_nx(gi: ig.Graph, directed: bool = None) -> object:
+def __from_igraph_to_nx(gi: object, directed: bool = None) -> object:
     """
 
     :param gi:
@@ -221,7 +225,7 @@ def nx_node_integer_mapping(graph: object) -> tuple:
 
 
 def remap_node_communities(communities: object, node_map: dict) -> list:
-    """Apply a map to the obtained communities to retreive the original node labels
+    """Apply a map to the obtained communities to retrive the original node labels
 
     :param communities: NodeClustering object
     :param node_map: dictionary <numeric_id, node_label>
@@ -231,6 +235,24 @@ def remap_node_communities(communities: object, node_map: dict) -> list:
     cms = []
     for community in communities:
         community = [node_map[n] for n in community]
+        cms.append(community)
+    communities = cms
+    return communities
+
+
+def remap_edge_communities(
+    communities: object, node_map: dict
+) -> list:  # ADDED TO HANDLE THIS CASE, VERSION FOR NODES CAN'T HANDLE THIS
+    """Apply a map to the obtained communities to retreive the original node labels
+
+    :param communities: EdgeClustering object
+    :param node_map: dictionary <numeric_id, node_label>
+    :return: remapped communities
+    """
+
+    cms = []
+    for community in communities:
+        community = [(node_map[e[0]], node_map[e[1]]) for e in community]
         cms.append(community)
     communities = cms
     return communities

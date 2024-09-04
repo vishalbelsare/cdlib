@@ -1,5 +1,5 @@
 {% set name = "cdlib" %}
-{% set version = "0.2.6" %}
+{% set version = "0.4.0" %}
 
 package:
   name: "{{ name|lower }}"
@@ -10,63 +10,55 @@ source:
 
 requirements:
   host:
-    - angel_cd
-    - bimlpa
-    - chinese_whispers
-    - demon
-    - dynetx
-    - eva_lcd
-    - karateclub
-    - leidenalg
-    - markov_clustering
-    - matplotlib
-    - networkx>=2.4
-    - nf1
+    - python=3.9
     - numpy
-    - pandas
-    - pip
-    - pooch
-    - pulp
-    - pyclustering
-    - python>=3.8
-    - python-igraph
-    - python-levenshtein
-    - python-louvain
+    - matplotlib
     - scikit-learn
-    - scipy==1.6.2
-    - seaborn
-    - thresholdclustering
     - tqdm
-    - wurlitzer
+    - networkx>=3.0
+    - demon
+    - python-louvain
+    - nf1
+    - scipy
+    - pulp
+    - seaborn
+    - pandas
+    - eva_lcd
+    - bimlpa
+    - python-igraph
+    - angelcommunity
+    - pooch
+    - dynetx
+    - thresholdclustering
+    - python-Levenshtein
     - setuptools
+    - plotly
   build:
     - python
     - setuptools
   run:
-    - angel_cd
-    - bimlpa
-    - chinese_whispers
-    - demon
-    - dynetx
-    - eva_lcd
-    - markov_clustering
-    - matplotlib
-    - networkx==2.6.2
-    - nf1
+    - python=3.9
     - numpy
-    - pandas
-    - pooch
-    - pulp
-    - pyclustering
-    - python>=3.8
-    - python-igraph
-    - python-levenshtein
-    - python-louvain
+    - matplotlib
     - scikit-learn
-    - scipy==1.6.2
-    - seaborn==0.11.2
-    - thresholdclustering
     - tqdm
+    - networkx>=3.0
+    - demon
+    - python-louvain
+    - nf1
+    - scipy
+    - pulp
+    - seaborn
+    - pandas
+    - eva_lcd
+    - bimlpa
+    - python-igraph
+    - angelcommunity
+    - pooch
+    - dynetx
+    - thresholdclustering
+    - python-Levenshtein
+    - plotly
 
 about:
   home: "https://github.com/GiulioRossetti/cdlib"
